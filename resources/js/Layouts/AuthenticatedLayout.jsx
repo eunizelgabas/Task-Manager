@@ -1,28 +1,24 @@
-// resources/js/Layouts/AuthenticatedLayout.jsx
-import { useState } from 'react';
-import Sidebar from '@/Components/Sidebar';
-import TopNavigation from '@/Components/TopNavigation';
+import React from 'react';
+import { Head } from '@inertiajs/react';
+import { Provider } from 'react-redux';
+import { store } from '../store/store';
+import Sidebar from './Sidebar';
+import Header from './Header';
 
-export default function AuthenticatedLayout({ children }) {
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+export default function AuthenticatedLayout({ user, header, children }) {
+    return (
+        <Provider store={store}>
+            <div className="flex h-screen bg-gray-100">
+                <Sidebar user={user} />
 
-  return (
-    <div className="min-h-screen bg-gray-50">
-      <Sidebar
-        collapsed={sidebarCollapsed}
-        onToggleCollapse={setSidebarCollapsed}
-      />
+                <div className="flex-1 flex flex-col overflow-hidden">
+                    <Header user={user} header={header} />
 
-      <div className={(
-        "transition-all duration-300",
-        sidebarCollapsed ? "md:ml-16" : "md:ml-64"
-      )}>
-        <TopNavigation />
-
-        <main className="p-6">
-          {children}
-        </main>
-      </div>
-    </div>
-  );
+                    <main className="flex-1 overflow-auto p-6">
+                        {children}
+                    </main>
+                </div>
+            </div>
+        </Provider>
+    );
 }
