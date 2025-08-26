@@ -16,7 +16,7 @@ class TaskController extends Controller
             ->latest()
             ->get();
 
-        $projects = Project::select(['id', 'title'])->get();
+        $projects = Project::select(['id', 'name'])->get();
 
         // Get all users (not just members)
         $users = User::select(['id', 'name'])->get();
@@ -40,7 +40,7 @@ class TaskController extends Controller
         $validated = $request->validate([
             'title' => 'required|string|max:255',
             'description' => 'nullable|string|max:1000',
-            'status' => 'required|in:pending,in_progress,completed,cancelled',
+            'status' => 'required|in:To Do,In Progress, Done',
             'project_id' => 'required|exists:projects,id',
             'assigned_to' => 'nullable|exists:users,id',
         ]);
@@ -54,7 +54,7 @@ class TaskController extends Controller
         $validated = $request->validate([
             'title' => 'required|string|max:255',
             'description' => 'nullable|string|max:1000',
-            'status' => 'required|in:pending,in_progress,completed,cancelled',
+            'status' => 'required|in:To Do,In Progress, Done',
             'project_id' => 'required|exists:projects,id',
             'assigned_to' => 'nullable|exists:users,id',
         ]);

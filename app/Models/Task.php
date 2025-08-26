@@ -20,8 +20,16 @@ class Task extends Model
     {
         return $this->belongsTo(Project::class);
     }
-    public function assignedUser()
+    public function assignee()
     {
         return $this->belongsTo(User::class, 'assigned_to');
+    }
+    public function getStatusColorAttribute(): string
+    {
+        return match($this->status) {
+            'To Do' => 'yellow',
+            'In Progress' => 'blue',
+            'Done' => 'green',
+        };
     }
 }

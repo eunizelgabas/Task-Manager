@@ -64,6 +64,10 @@ Route::middleware(['auth', 'role:Admin|Manager'])->group(function () {
 // Tasks (All Roles)
 Route::middleware('auth')->group(function () {
     Route::resource('tasks', TaskController::class);
+    Route::get('/tasks', [TaskController::class, 'index'])->name('tasks');
+    Route::post('/tasks', [TaskController::class, 'store'])->name('tasks.store');
+    Route::put('/tasks/{task}', [TaskController::class, 'update'])->name('tasks.update');
+    Route::delete('/tasks/{task}', [TaskController::class, 'destroy'])->name('tasks.destroy');
 });
 
 require __DIR__.'/auth.php';
