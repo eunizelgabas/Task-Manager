@@ -31,28 +31,24 @@ export default function Dashboard({ auth, stats }) {
                         value={stats?.users || "1,234"}
                         icon={Users}
                         color="blue"
-                        trend="+12% from last month"
                     />
                     <StatsCard
                         title="Active Tasks"
                         value={stats?.tasks || "56"}
                         icon={CheckSquare}
                         color="green"
-                        trend="+8% from last week"
                     />
                     <StatsCard
                         title="Projects"
                         value={stats?.projects || "12"}
                         icon={FolderOpen}
                         color="purple"
-                        trend="+3 new projects"
                     />
                     <StatsCard
-                        title="Growth"
+                        title="Tasks"
                         value="89%"
                         icon={TrendingUp}
                         color="orange"
-                        trend="+5% from last month"
                     />
                 </div>
 

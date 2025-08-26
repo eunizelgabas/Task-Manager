@@ -10,48 +10,64 @@ use Inertia\Inertia;
 
 class TaskController extends Controller
 {
-     public function index(Request $request)
+    public function index()
     {
-        $user = auth()->user();
+        $tasks = Task::with(['project', 'assignee'])
+            ->latest()
+            ->get();
 
-        $query = Task::with(['project', 'user']);
-        if (!$user->can('view all tasks')) {
-            $query->where('user_id', $user->id);
-        }
-        // Apply filters
-        if ($request->has('project_id')) {
-            $query->where('project_id', $request->project_id);
-        }
-        if ($request->has('status')) {
-            $query->where('status', $request->status);
-        }
-         $tasks = $query->paginate(10);
-        $projects = $user->can('view all projects')
-            ? Project::all()
-            : Project::where('user_id', $user->id)->get();
-        return Inertia::render('Tasks/Index', [
+        $projects = Project::select(['id', 'title'])->get();
+
+        // Get all users (not just members)
+        $users = User::select(['id', 'name'])->get();
+
+        $stats = [
+            'total' => Task::count(),
+            'pending' => Task::where('status', 'pending')->count(),
+            'in_progress' => Task::where('status', 'in_progress')->count(),
+            'completed' => Task::where('status', 'completed')->count(),
+        ];
+        return Inertia::render('Tasks', [
             'tasks' => $tasks,
             'projects' => $projects,
-            'filters' => $request->only(['project_id', 'status']),
-            'can' => [
-                'create' => $user->can('create tasks'),
-                'edit' => $user->can('edit tasks'),
-                'delete' => $user->can('delete tasks'),
-                'assign' => $user->can('assign tasks'),
-            ]
+            'users' => $users, // Changed from 'members' to 'users'
+            'stats' => $stats
         ]);
     }
 
-    public function create()
+    public function store(Request $request)
     {
-        $this->authorize('create tasks');
-        $projects = auth()->user()->can('view all projects')
-            ? Project::all()
-            : Project::where('user_id', auth()->id())->get();
-        $users = User::role('member')->get();
-        return Inertia::render('Tasks/Create', [
-            'projects' => $projects,
-            'users' => $users,
+        $validated = $request->validate([
+            'title' => 'required|string|max:255',
+            'description' => 'nullable|string|max:1000',
+            'status' => 'required|in:pending,in_progress,completed,cancelled',
+            'project_id' => 'required|exists:projects,id',
+            'assigned_to' => 'nullable|exists:users,id',
         ]);
+        $task = Task::create($validated);
+        return redirect()->back()->with('success', "Task '{$task->title}' has been created successfully!");
+    }
+
+    public function update(Request $request, Task $task)
+    {
+
+        $validated = $request->validate([
+            'title' => 'required|string|max:255',
+            'description' => 'nullable|string|max:1000',
+            'status' => 'required|in:pending,in_progress,completed,cancelled',
+            'project_id' => 'required|exists:projects,id',
+            'assigned_to' => 'nullable|exists:users,id',
+        ]);
+        $oldTitle = $task->title;
+        $task->update($validated);
+        return redirect()->back()->with('success', "Task '{$oldTitle}' has been updated successfully!");
+    }
+
+    public function destroy(Task $task)
+    {
+
+        $taskTitle = $task->title;
+        $task->delete();
+        return redirect()->back()->with('success', "Task '{$taskTitle}' has been deleted successfully!");
     }
 }

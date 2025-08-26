@@ -44,10 +44,17 @@ class User extends Authenticatable
         'password' => 'hashed',
     ];
 
-    public function projects() { return $this->hasMany(Project::class, 'manager_id'); }
-    public function tasks() { return $this->hasMany(Task::class, 'assigned_to'); }
+    public function projects()
+    {
+        return $this->hasMany(Project::class, 'manager_id');
+    }
+    public function tasks()
+    {
+        return $this->hasMany(Task::class, 'assigned_to');
+    }
 
-
-
-
+     public function getPrimaryRoleAttribute()
+    {
+        return $this->roles->first()?->name ?? 'user';
+    }
 }

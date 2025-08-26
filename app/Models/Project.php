@@ -15,7 +15,7 @@ class Project extends Model
         'manager_id',
     ];
 
-    public function user()
+    public function manager()
     {
         return $this->belongsTo(User::class, 'manager_id');
     }

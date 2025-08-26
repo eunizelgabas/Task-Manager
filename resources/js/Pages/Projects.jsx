@@ -1,407 +1,356 @@
-import React, { useState } from 'react'
-import { Plus, Folder, Users, Calendar, BarChart3, Eye, Edit, Trash2 } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Textarea } from '@/components/ui/textarea'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import DataTable from '../components/DataTable'
-import Modal from '../components/Modal'
-import StatsCard from '../components/StatsCard'
+import React, { useState, useCallback, useRef, useEffect } from 'react';
+import { Head, router, usePage } from '@inertiajs/react';
+import { Plus, FolderOpen, Users, Edit, Trash2 } from 'lucide-react';
+import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import { Button } from '@/Components/ui/button';
+import { Badge } from '@/Components/ui/badge';
+import { Input } from '@/Components/ui/input';
+import { Label } from '@/Components/ui/label';
+import { Textarea } from '@/Components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/Components/ui/select';
+import DataTable from '@/Components/DataTable';
+import Modal from '@/Components/Modal';
+import StatsCard from '@/Components/StatsCard';
+import FlashMessage from '@/Components/FlashMessage';
 
-const Projects = () => {
-  const [isModalOpen, setIsModalOpen] = useState(false)
-  const [selectedProject, setSelectedProject] = useState(null)
+const ProjectForm = ({
+    formData,
+    handleInputChange,
+    handleSubmit,
+    processing,
+    selectedProject,
+    users,
+    errors,
+    onCancel
+}) => {
+    const nameInputRef = useRef(null);
 
-  const projects = [
-    {
-      id: 1,
-      name: 'E-commerce Platform',
-      description: 'Modern e-commerce platform with React and Laravel backend',
-      manager: 'John Doe',
-      status: 'Active',
-      priority: 'High',
-      progress: 75,
-      startDate: '2024-01-01',
-      endDate: '2024-06-30',
-      budget: '$50,000',
-      teamSize: 8,
-      client: 'Tech Corp'
-    },
-    {
-      id: 2,
-      name: 'Mobile Banking App',
-      description: 'Secure mobile banking application with biometric authentication',
-      manager: 'Jane Smith',
-      status: 'Active',
-      priority: 'Critical',
-      progress: 45,
-      startDate: '2024-02-15',
-      endDate: '2024-08-15',
-      budget: '$120,000',
-      teamSize: 12,
-      client: 'First Bank'
-    },
-    {
-      id: 3,
-      name: 'CRM System',
-      description: 'Customer relationship management system for sales teams',
-      manager: 'Mike Johnson',
-      status: 'Completed',
-      priority: 'Medium',
-      progress: 100,
-      startDate: '2023-09-01',
-      endDate: '2024-01-31',
-      budget: '$75,000',
-      teamSize: 6,
-      client: 'Sales Pro Inc'
-    },
-    {
-      id: 4,
-      name: 'Learning Management System',
-      description: 'Online learning platform with video streaming and assessments',
-      manager: 'Sarah Wilson',
-      status: 'On Hold',
-      priority: 'Low',
-      progress: 25,
-      startDate: '2024-03-01',
-      endDate: '2024-12-31',
-      budget: '$90,000',
-      teamSize: 10,
-      client: 'EduTech Solutions'
-    },
-    {
-      id: 5,
-      name: 'Inventory Management',
-      description: 'Real-time inventory tracking and management system',
-      manager: 'David Brown',
-      status: 'Active',
-      priority: 'Medium',
-      progress: 60,
-      startDate: '2024-01-15',
-      endDate: '2024-07-15',
-      budget: '$35,000',
-      teamSize: 5,
-      client: 'Warehouse Co'
-    }
-  ]
-
-  const projectColumns = [
-    {
-      key: 'name',
-      header: 'Project Name',
-      render: (value, row) => (
-        <div>
-          <div className="font-medium">{value}</div>
-          <div className="text-sm text-gray-500 truncate max-w-xs">{row.description}</div>
-        </div>
-      )
-    },
-    { key: 'manager', header: 'Manager' },
-    { key: 'client', header: 'Client' },
-    {
-      key: 'status',
-      header: 'Status',
-      render: (value) => {
-        const colors = {
-          'Active': 'default',
-          'Completed': 'default',
-          'On Hold': 'secondary',
-          'Cancelled': 'destructive'
+    useEffect(() => {
+        if (nameInputRef.current) {
+            setTimeout(() => {
+                nameInputRef.current.focus();
+            }, 100);
         }
-        return <Badge variant={colors[value] || 'secondary'}>{value}</Badge>
-      }
-    },
-    {
-      key: 'priority',
-      header: 'Priority',
-      render: (value) => {
-        const colors = {
-          Critical: 'destructive',
-          High: 'default',
-          Medium: 'secondary',
-          Low: 'outline'
+    }, []);
+
+    return (
+        <form onSubmit={handleSubmit} className="space-y-4">
+            {/* Show validation errors */}
+            {Object.keys(errors).length > 0 && (
+                <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-md">
+                    <p className="font-medium">Please fix the following errors:</p>
+                    <ul className="mt-1 list-disc list-inside text-sm">
+                        {Object.entries(errors).map(([field, messages]) => (
+                            <li key={field}>
+                                {Array.isArray(messages) ? messages[0] : messages}
+                            </li>
+                        ))}
+                    </ul>
+                </div>
+            )}
+
+            <div>
+                <Label htmlFor="name">Project name</Label>
+                <Input
+                    id="name"
+                    ref={nameInputRef}
+                    placeholder="Enter project name"
+                    value={formData.name}
+                    onChange={(e) => handleInputChange('name', e.target.value)}
+                    required
+                    className={errors.name ? 'border-red-500' : ''}
+                />
+                {errors.name && <p className="text-red-500 text-sm mt-1">{errors.name}</p>}
+            </div>
+
+            <div>
+                <Label htmlFor="description">Description</Label>
+                <Textarea
+                    id="description"
+                    placeholder="Enter project description"
+                    value={formData.description}
+                    onChange={(e) => handleInputChange('description', e.target.value)}
+                    rows={4}
+                    className={errors.description ? 'border-red-500' : ''}
+                />
+                {errors.description && <p className="text-red-500 text-sm mt-1">{errors.description}</p>}
+            </div>
+
+            <div>
+                <Label htmlFor="manager_id">Project Manager</Label>
+                <Select
+                    value={formData.manager_id?.toString() || ''}
+                    onValueChange={(value) => handleInputChange('manager_id', parseInt(value))}
+                >
+                    <SelectTrigger className={errors.manager_id ? 'border-red-500' : ''}>
+                        <SelectValue placeholder="Select project manager" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        {users.map((user) => (
+                            <SelectItem key={user.id} value={user.id.toString()}>
+                                {user.name}
+                            </SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
+                {errors.manager_id && <p className="text-red-500 text-sm mt-1">{errors.manager_id}</p>}
+            </div>
+
+            <div className="flex justify-end space-x-2 pt-4">
+                <Button
+                    type="button"
+                    variant="outline"
+                    onClick={onCancel}
+                    disabled={processing}
+                >
+                    Cancel
+                </Button>
+                <Button type="submit" disabled={processing}>
+                    {processing ? 'Saving...' : (selectedProject ? 'Update Project' : 'Create Project')}
+                </Button>
+            </div>
+        </form>
+    );
+};
+
+export default function Projects({ auth, projects = [], users = [], stats = {}, flash = {} }) {
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [selectedProject, setSelectedProject] = useState(null);
+    const [formData, setFormData] = useState({
+        name: '',
+        description: '',
+        manager_id: '',
+    });
+    const [processing, setProcessing] = useState(false);
+    const { errors } = usePage().props;
+
+    const projectColumns = [
+        {
+            key: 'name',
+            header: 'Project name',
+            render: (value, row) => {
+                const name = value || 'Unnamed Project';
+                const description = row?.description || 'No description';
+
+                return (
+                    <div className="space-y-1">
+                        <div className="font-medium text-gray-900">{name}</div>
+                        <div className="text-sm text-gray-500 line-clamp-2">
+                            {description.length > 100 ? `${description.substring(0, 100)}...` : description}
+                        </div>
+                    </div>
+                );
+            }
+        },
+        {
+            key: 'manager',
+            header: 'Project Manager',
+            render: (value, row) => {
+                const manager = row?.manager;
+                if (!manager) return <span className="text-gray-400">No manager assigned</span>;
+
+                return (
+                    <div className="flex items-center space-x-3">
+                        <div className="w-8 h-8 bg-purple-600 rounded-full flex items-center justify-center text-white text-sm font-medium">
+                            {manager.name.charAt(0).toUpperCase()}
+                        </div>
+                        <div>
+                            <div className="font-medium text-gray-900">{manager.name}</div>
+                            <div className="text-sm text-gray-500">Manager</div>
+                        </div>
+                    </div>
+                );
+            }
+        },
+        {
+            key: 'created_at',
+            header: 'Created Date',
+            render: (value) => {
+                if (!value) return 'N/A';
+                try {
+                    return new Date(value).toLocaleDateString();
+                } catch (error) {
+                    return 'Invalid Date';
+                }
+            }
         }
-        return <Badge variant={colors[value]}>{value}</Badge>
-      }
-    },
-    {
-      key: 'progress',
-      header: 'Progress',
-      render: (value) => (
-        <div className="flex items-center space-x-2">
-          <div className="w-16 bg-gray-200 rounded-full h-2">
-            <div
-              className="bg-blue-600 h-2 rounded-full"
-              style={{ width: `${value}%` }}
-            ></div>
-          </div>
-          <span className="text-sm">{value}%</span>
-        </div>
-      )
-    },
-    { key: 'budget', header: 'Budget' },
-    { key: 'endDate', header: 'Due Date' }
-  ]
+    ];
 
-  const projectActions = [
-    {
-      label: 'View',
-      variant: 'outline',
-      onClick: (project) => {
-        console.log('View project:', project)
-      }
-    },
-    {
-      label: 'Edit',
-      variant: 'outline',
-      onClick: (project) => {
-        setSelectedProject(project)
-        setIsModalOpen(true)
-      }
-    },
-    {
-      label: 'Delete',
-      variant: 'destructive',
-      onClick: (project) => {
-        console.log('Delete project:', project)
-      }
-    }
-  ]
+    const projectActions = [
+        {
+            label: 'Edit',
+            variant: 'outline',
+            onClick: (project) => {
+                setSelectedProject(project);
+                setFormData({
+                    name: project?.name || '',
+                    description: project?.description || '',
+                    manager_id: project?.manager_id || '',
+                });
+                setIsModalOpen(true);
+            }
+        },
+        {
+            label: 'Delete',
+            variant: 'destructive',
+            onClick: (project) => {
+                if (confirm(`Are you sure you want to delete "${project.name}"?`)) {
+                    handleDeleteProject(project.id);
+                }
+            }
+        }
+    ];
 
-  const ProjectForm = () => (
-    <div className="space-y-4">
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <Label htmlFor="name">Project Name</Label>
-          <Input
-            id="name"
-            placeholder="Enter project name"
-            defaultValue={selectedProject?.name || ''}
-          />
-        </div>
-        <div>
-          <Label htmlFor="client">Client</Label>
-          <Input
-            id="client"
-            placeholder="Enter client name"
-            defaultValue={selectedProject?.client || ''}
-          />
-        </div>
-      </div>
+    const handleInputChange = useCallback((field, value) => {
+        setFormData(prev => ({
+            ...prev,
+            [field]: value
+        }));
+    }, []);
 
-      <div>
-        <Label htmlFor="description">Description</Label>
-        <Textarea
-          id="description"
-          placeholder="Enter project description"
-          defaultValue={selectedProject?.description || ''}
-          rows={3}
-        />
-      </div>
+    const handleSubmit = useCallback(async (e) => {
+        e.preventDefault();
+        setProcessing(true);
 
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <Label htmlFor="manager">Project Manager</Label>
-          <Input
-            id="manager"
-            placeholder="Assign project manager"
-            defaultValue={selectedProject?.manager || ''}
-          />
-        </div>
-        <div>
-          <Label htmlFor="budget">Budget</Label>
-          <Input
-            id="budget"
-            placeholder="Enter budget (e.g., $50,000)"
-            defaultValue={selectedProject?.budget || ''}
-          />
-        </div>
-      </div>
+        try {
+            if (selectedProject) {
+                // Update project
+                router.put(`/projects/${selectedProject.id}`, formData, {
+                    onSuccess: () => {
+                        setIsModalOpen(false);
+                        resetForm();
+                    },
+                    onError: (errors) => {
+                        console.error('Update failed:', errors);
+                    },
+                    onFinish: () => setProcessing(false)
+                });
+            } else {
+                // Create project
+                router.post('/projects', formData, {
+                    onSuccess: () => {
+                        setIsModalOpen(false);
+                        resetForm();
+                    },
+                    onError: (errors) => {
+                        console.error('Creation failed:', errors);
+                    },
+                    onFinish: () => setProcessing(false)
+                });
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            setProcessing(false);
+        }
+    }, [formData, selectedProject]);
 
-      <div className="grid grid-cols-3 gap-4">
-        <div>
-          <Label htmlFor="status">Status</Label>
-          <Select defaultValue={selectedProject?.status || ''}>
-            <SelectTrigger>
-              <SelectValue placeholder="Select status" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="Active">Active</SelectItem>
-              <SelectItem value="On Hold">On Hold</SelectItem>
-              <SelectItem value="Completed">Completed</SelectItem>
-              <SelectItem value="Cancelled">Cancelled</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-        <div>
-          <Label htmlFor="priority">Priority</Label>
-          <Select defaultValue={selectedProject?.priority || ''}>
-            <SelectTrigger>
-              <SelectValue placeholder="Select priority" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="Critical">Critical</SelectItem>
-              <SelectItem value="High">High</SelectItem>
-              <SelectItem value="Medium">Medium</SelectItem>
-              <SelectItem value="Low">Low</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-        <div>
-          <Label htmlFor="teamSize">Team Size</Label>
-          <Input
-            id="teamSize"
-            type="number"
-            placeholder="Number of team members"
-            defaultValue={selectedProject?.teamSize || ''}
-          />
-        </div>
-      </div>
+    const handleDeleteProject = useCallback((projectId) => {
+        router.delete(`/projects/${projectId}`, {
+            onSuccess: () => {
+                console.log('Project deleted successfully');
+            },
+            onError: (errors) => {
+                console.error('Delete failed:', errors);
+            }
+        });
+    }, []);
 
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <Label htmlFor="startDate">Start Date</Label>
-          <Input
-            id="startDate"
-            type="date"
-            defaultValue={selectedProject?.startDate || ''}
-          />
-        </div>
-        <div>
-          <Label htmlFor="endDate">End Date</Label>
-          <Input
-            id="endDate"
-            type="date"
-            defaultValue={selectedProject?.endDate || ''}
-          />
-        </div>
-      </div>
+    const resetForm = useCallback(() => {
+        setFormData({
+            name: '',
+            description: '',
+            manager_id: '',
+        });
+        setSelectedProject(null);
+    }, []);
 
-      <div className="flex justify-end space-x-2 pt-4">
-        <Button variant="outline" onClick={() => setIsModalOpen(false)}>
-          Cancel
-        </Button>
-        <Button onClick={() => setIsModalOpen(false)}>
-          {selectedProject ? 'Update' : 'Create'} Project
-        </Button>
-      </div>
-    </div>
-  )
+    const handleCancel = useCallback(() => {
+        setIsModalOpen(false);
+        resetForm();
+    }, [resetForm]);
 
-  // Calculate stats
-  const activeProjects = projects.filter(p => p.status === 'Active').length
-  const completedProjects = projects.filter(p => p.status === 'Completed').length
-  const totalBudget = projects.reduce((sum, p) => {
-    const budget = parseInt(p.budget.replace(/[$,]/g, ''))
-    return sum + budget
-  }, 0)
-  const avgProgress = Math.round(projects.reduce((sum, p) => sum + p.progress, 0) / projects.length)
+    return (
+        <AuthenticatedLayout user={auth.user} header="Projects">
+            <Head name="Projects" />
 
-  return (
-    <div className="space-y-6">
-      {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <StatsCard
-          title="Total Projects"
-          value={projects.length.toString()}
-          icon={Folder}
-          color="blue"
-          trend={`${activeProjects} active`}
-        />
-        <StatsCard
-          title="Active Projects"
-          value={activeProjects.toString()}
-          icon={BarChart3}
-          color="green"
-          trend={`${completedProjects} completed`}
-        />
-        <StatsCard
-          title="Total Budget"
-          value={`$${(totalBudget / 1000).toFixed(0)}K`}
-          icon={Calendar}
-          color="purple"
-          trend="Across all projects"
-        />
-        <StatsCard
-          title="Avg Progress"
-          value={`${avgProgress}%`}
-          icon={Users}
-          color="orange"
-          trend="Overall completion"
-        />
-      </div>
+            <div className="space-y-6">
+                {/* Flash Messages */}
+                {flash?.success && (
+                    <FlashMessage
+                        type="success"
+                        message={flash.success}
+                        onClose={() => router.reload({ only: ['flash'] })}
+                    />
+                )}
+                {flash?.error && (
+                    <FlashMessage
+                        type="error"
+                        message={flash.error}
+                        onClose={() => router.reload({ only: ['flash'] })}
+                    />
+                )}
 
-      {/* Project Overview Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {projects.slice(0, 3).map((project) => (
-          <Card key={project.id} className="hover:shadow-lg transition-shadow">
-            <CardHeader className="pb-3">
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-lg">{project.name}</CardTitle>
-                <Badge variant={project.status === 'Active' ? 'default' : 'secondary'}>
-                  {project.status}
-                </Badge>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-gray-600 mb-4 line-clamp-2">
-                {project.description}
-              </p>
-              <div className="space-y-2">
-                <div className="flex justify-between text-sm">
-                  <span>Progress</span>
-                  <span>{project.progress}%</span>
+                {/* Stats */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <StatsCard
+                        title="Total Projects"
+                        value={projects.length.toString()}
+                        icon={FolderOpen}
+                        color="blue"
+                    />
+                    <StatsCard
+                        title="Project Managers"
+                        value={users.length.toString()}
+                        icon={Users}
+                        color="green"
+                    />
                 </div>
-                <div className="w-full bg-gray-200 rounded-full h-2">
-                  <div
-                    className="bg-blue-600 h-2 rounded-full"
-                    style={{ width: `${project.progress}%` }}
-                  ></div>
+
+                {/* Projects Table */}
+                <div className="flex justify-between items-center">
+                    <h2 className="text-2xl font-bold">Projects Management</h2>
+                    <Button onClick={() => {
+                        resetForm();
+                        setIsModalOpen(true);
+                    }}>
+                        <Plus className="h-4 w-4 mr-2" />
+                        Add Project
+                    </Button>
                 </div>
-                <div className="flex justify-between text-sm text-gray-500 pt-2">
-                  <span>Manager: {project.manager}</span>
-                  <span>{project.budget}</span>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
 
-      {/* Projects Table */}
-      <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold">Project Management</h2>
-        <Button onClick={() => {
-          setSelectedProject(null)
-          setIsModalOpen(true)
-        }}>
-          <Plus className="h-4 w-4 mr-2" />
-          Add Project
-        </Button>
-      </div>
+                {projects.length > 0 ? (
+                    <DataTable
+                        name="All Projects"
+                        columns={projectColumns}
+                        data={projects}
+                        actions={projectActions}
+                    />
+                ) : (
+                    <div className="text-center py-8">
+                        <p className="text-gray-500">No projects found. Create your first project!</p>
+                    </div>
+                )}
 
-      <DataTable
-        title="All Projects"
-        columns={projectColumns}
-        data={projects}
-        actions={projectActions}
-      />
-
-      {/* Project Modal */}
-      <Modal
-        open={isModalOpen}
-        onOpenChange={setIsModalOpen}
-        title={selectedProject ? 'Edit Project' : 'Add New Project'}
-        description={selectedProject ? 'Update project information' : 'Create a new project'}
-        size="xl"
-      >
-        <ProjectForm />
-      </Modal>
-    </div>
-  )
+                {/* Project Modal */}
+                <Modal
+                    open={isModalOpen}
+                    onOpenChange={setIsModalOpen}
+                    name={selectedProject ? 'Edit Project' : 'Add New Project'}
+                    description={selectedProject ? 'Update project information' : 'Create a new project'}
+                    trapFocus={false}
+                >
+                    <ProjectForm
+                        formData={formData}
+                        handleInputChange={handleInputChange}
+                        handleSubmit={handleSubmit}
+                        processing={processing}
+                        selectedProject={selectedProject}
+                        users={users}
+                        errors={errors}
+                        onCancel={handleCancel}
+                    />
+                </Modal>
+            </div>
+        </AuthenticatedLayout>
+    );
 }
-
-export default Projects

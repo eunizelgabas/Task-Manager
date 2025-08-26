@@ -11,95 +11,59 @@ use Inertia\Inertia;
 
 class ProjectController extends Controller
 {
-   public function index(Request $request)
+   public function index()
     {
-        $user = Auth::user();
-        $query = Task::with(['project', 'assignedUser']);
+        $projects = Project::with('manager')
+                          ->latest()
+                          ->get();
 
-        // Filter by role
-        if ($user->hasRole('Member')) {
-            $query->where('assigned_to', $user->id);
-        }
+        $users = User::select(['id', 'name'])->get();
 
-        // Filtering by project and status (optional via query string)
-        if ($request->has('project_id')) {
-            $query->where('project_id', $request->project_id);
-        }
-
-        if ($request->has('status')) {
-            $query->where('status', $request->status);
-        }
-
-        $tasks = $query->get();
-        $projects = Project::all();
-
-        return Inertia::render('Tasks/Index', [
-            'tasks'    => $tasks,
+        $stats = [
+            'total' => Project::count(),
+            'this_month' => Project::whereMonth('created_at', now()->month)->count(),
+            'managers' => Project::distinct('manager_id')->count(),
+        ];
+        return Inertia::render('Projects', [
             'projects' => $projects,
+            'users' => $users,
+            'stats' => $stats
         ]);
     }
 
-    public function create()
-    {
-        return Inertia::render('Tasks/Create', [
-            'projects' => Project::all(),
-            'members'  => User::role('Member')->get(),
-        ]);
-    }
 
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'title'       => 'required|string|max:255',
+            'name'       => 'required|string|max:255',
             'description' => 'nullable|string',
-            'project_id'  => 'required|exists:projects,id',
-            'assigned_to' => 'required|exists:users,id',
+             'manager_id' => 'required|exists:users,id',
         ]);
 
-        Task::create([
+        Project::create([
             ...$validated,
             'status' => 'To Do',
         ]);
 
-        return redirect()->route('tasks.index')->with('success', 'Task created.');
+        return redirect()->route('projects')->with('success', 'Task created.');
     }
 
-    public function edit(Task $task)
+    public function update(Request $request, Project $project)
     {
-        return Inertia::render('Tasks/Edit', [
-            'task'     => $task,
-            'projects' => Project::all(),
-            'members'  => User::role('Member')->get(),
-        ]);
-    }
-
-    public function update(Request $request, Task $task)
-    {
-        $user = Auth::user();
-
-        if ($user->hasRole('Member')) {
-            $validated = $request->validate([
-                'status' => 'required|in:To Do,In Progress,Done',
+         $validated = $request->validate([
+                'name' => 'required|string|max:255',
+                'description' => 'nullable|string|max:1000',
+                'manager_id' => 'required|exists:users,id',
             ]);
-            $task->update(['status' => $validated['status']]);
-        } else {
-            $validated = $request->validate([
-                'title'       => 'sometimes|string|max:255',
-                'description' => 'nullable|string',
-                'status'      => 'required|in:To Do,In Progress,Done',
-                'project_id'  => 'required|exists:projects,id',
-                'assigned_to' => 'required|exists:users,id',
-            ]);
-            $task->update($validated);
-        }
-
-        return redirect()->route('tasks.index')->with('success', 'Task updated.');
+            $oldname = $project->name;
+            $project->update($validated);
+            return redirect()->back()->with('success', "Project '{$oldname}' has been updated successfully!");
     }
 
-    public function destroy(Task $task)
+    public function destroy(Project $project)
     {
-        $task->delete();
-
-        return redirect()->route('tasks.index')->with('success', 'Task deleted.');
+         $projectname = $project->name;
+            $project->delete();
+            return redirect()->back()->with('success', "Project '{$projectname}' has been deleted successfully!");
     }
 }
